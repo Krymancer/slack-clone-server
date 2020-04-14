@@ -1,13 +1,20 @@
+import requiresAuth from '../../permission';
+
 export default {
     Mutation: {
-        createTeam: async (param, args, context) => {
+        createTeam: requiresAuth.createResolver(async (param, args, context) => {
             try {
-                await context.models.Team.create({...args, owner: context.user.id});
-                return true;
-            }catch (error){
+                await context.models.Team.create({ ...args, owner: context.user.id });
+                return {
+                    ok: true,
+                };
+            } catch (error) {
                 console.log(error);
-                return false;
+                return {
+                    ok: false,
+                    errors: error.errors,
+                };
             }
-        },
+        }),
     },
 };

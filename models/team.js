@@ -5,6 +5,9 @@ export default (sequelize, DataTypes) => {
             name: {
                 type: DataTypes.STRING,
                 unique: true,
+                validate: {
+                    len: { args: [5, 50], msg: "The name needs to be between 5 and 50 characters long" },
+                }
             },
         },
         { underscored: true },

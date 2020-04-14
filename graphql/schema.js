@@ -1,6 +1,9 @@
 import { ApolloServer } from 'apollo-server-express';
 import path from 'path';
 import { fileLoader, mergeTypes, mergeResolvers } from 'merge-graphql-schemas';
+import jwt from 'jsonwebtoken';
+
+import { refreshTokens } from '../auth';
 import models from '../models';
 
 const typeDefs = mergeTypes(fileLoader(path.join(__dirname, './schemas')));
@@ -12,13 +15,32 @@ const secret2 = 'b1ef4c83bf17e8085b40d12a2f3deae4d7fa7e1592034bd97b33de85309f5f4
 const server = new ApolloServer({
     typeDefs: typeDefs,
     resolvers: resolvers,
-    context: {
-        models,
-        user : {
-            id: 1,
-        },
-        SECRET: secret,
-        SECRET2: secret2,
+    context: async ({ req }) => {
+
+        const token = req.headers['x-token'];
+
+        if (token) {
+            try {
+                const { user } = jwt.verify(token, secret);
+                req.user = user;
+            } catch (error) {
+                const refreshToken = await req.headers['x-refresh-token'];
+                const newTokens = refreshTokens(token, refreshToken, models, secret, secret2);
+                if (newTokens.token && newTokens.refreshToken) {
+                    req.set('Acess-Control-Expose-Headers', 'x-token', 'x-refresh-token');
+                    req.set('x-token', newTokens.token);
+                    req.set('x-refresh-token', newTokens.refreshToken)
+                }
+                req.user = newTokens.user;
+            }
+        }
+
+        return {
+            models,
+            user: req.user,
+            SECRET: secret,
+            SECRET2: secret2,
+        }
     },
     playground: {
         endpoint: `http://localhost:4000/graphql`,
