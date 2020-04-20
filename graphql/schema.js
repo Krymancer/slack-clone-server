@@ -15,7 +15,7 @@ const secret2 = 'b1ef4c83bf17e8085b40d12a2f3deae4d7fa7e1592034bd97b33de85309f5f4
 const server = new ApolloServer({
     typeDefs: typeDefs,
     resolvers: resolvers,
-    context: async ({ req }) => {
+    context: async ({ req, res }) => {
 
         const token = req.headers['x-token'];
 
@@ -25,12 +25,14 @@ const server = new ApolloServer({
                 req.user = user;
             } catch (error) {
                 const refreshToken = await req.headers['x-refresh-token'];
-                const newTokens = refreshTokens(token, refreshToken, models, secret, secret2);
+                const newTokens = await refreshTokens(token, refreshToken, models, secret, secret2);
+
                 if (newTokens.token && newTokens.refreshToken) {
-                    req.set('Acess-Control-Expose-Headers', 'x-token', 'x-refresh-token');
-                    req.set('x-token', newTokens.token);
-                    req.set('x-refresh-token', newTokens.refreshToken)
+                    res.set('Acess-Control-Expose-Headers', 'x-token', 'x-refresh-token');
+                    res.set('x-token', newTokens.token);
+                    res.set('x-refresh-token', newTokens.refreshToken);
                 }
+
                 req.user = newTokens.user;
             }
         }

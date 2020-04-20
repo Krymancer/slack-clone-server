@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 export const createTokens = async (user, secret, secret2) => {
     const createToken = jwt.sign(
         {
-            user: _.pick(user, ['id']),
+            user: _.pick(user, ['id', 'username']),
         },
         secret,
         {
@@ -15,7 +15,7 @@ export const createTokens = async (user, secret, secret2) => {
 
     const createRefreshToken = jwt.sign(
         {
-            user: _.pick(user, 'id'),
+            user: _.pick(user, ['id', 'username']),
         },
         secret2,
         {
@@ -40,13 +40,12 @@ export const refreshTokens = async (token, refreshToken, models, SECRET, SECRET2
     }
 
     const user = await models.User.findOne({ where: { id: userId }, raw: true });
-
+    
     if (!user) {
         return {};
     }
 
     const refreshTokenSecret = user.password + SECRET2;
-
 
     try {
         jwt.verify(refreshToken, refreshTokenSecret);
@@ -55,6 +54,7 @@ export const refreshTokens = async (token, refreshToken, models, SECRET, SECRET2
     }
 
     const [newToken, newRefreshToken] = await createTokens(user, SECRET, refreshTokenSecret);
+
     return {
         token: newToken,
         refreshToken: newRefreshToken,
